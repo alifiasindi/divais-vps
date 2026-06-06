@@ -31,7 +31,7 @@ if (!isset($_SESSION['status_login']) || $_SESSION['status_login'] !== true) {
 </head>
 <body>
     <div class="header">
-        <h2>Monitoring Peminjaman IoT Kit Box</h2>
+        <h2>Monitoring Peminjaman Box IoT </h2>
         <a href="logout.php" class="logout-btn">Logout</a>
     </div>
 
