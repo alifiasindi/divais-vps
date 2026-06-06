@@ -32,6 +32,9 @@ if (!isset($_SESSION['status_login']) || $_SESSION['status_login'] !== true) {
 <body>
     <div class="header">
         <h2>Monitoring Peminjaman Box IoT </h2>
+        <a href="crud.php"
+         style="color: white; text-decoration: none; margin-right: 15px; 
+         font-weight: bold;">Kelola Kit Box</a>
         <a href="logout.php" class="logout-btn">Logout</a>
     </div>
 
