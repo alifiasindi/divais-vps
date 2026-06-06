@@ -35,6 +35,11 @@ if (!isset($_SESSION['status_login']) || $_SESSION['status_login'] !== true) {
         <a href="crud.php"
          style="color: white; text-decoration: none; margin-right: 15px; 
          font-weight: bold;">Kelola Kit Box</a>
+         ini di dashboard
+         <a href="crud_asdos.php" 
+         style="color: white; text-decoration: 
+         none; margin-right: 15px;
+        font-weight: bold;">Kelola Asdos</a>
         <a href="logout.php" class="logout-btn">Logout</a>
     </div>
 
