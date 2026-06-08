@@ -3,11 +3,8 @@ require_once 'koneksi.php';
 
 header('Content-Type: application/json');
 
-// Ambil data JSON dari ESP32
-$input = json_decode(file_get_contents("php://input"), true);
-
-// Ambil UID
-$uid = strtoupper(trim($input['uid'] ?? ''));
+// Ambil UID dari POST ESP32
+$uid = strtoupper(trim($_POST['uid'] ?? ''));
 
 // Validasi UID kosong
 if (empty($uid)) {
