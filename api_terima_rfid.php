@@ -1,31 +1,68 @@
 <?php
 require_once 'koneksi.php';
 
-// Cek apakah data UID RFID dikirim via POST
-if (isset($_POST['uid'])) {
-    $uid = htmlspecialchars($_POST['uid']);
-    $waktu = date('Y-m-d H:i:s');
+header('Content-Type: application/json');
 
-    try {
-        // Cek apakah UID terdaftar di database
-        $stmt = $pdo->prepare("SELECT nama FROM asdos WHERE id_rfid = ?");
-        $stmt->execute([$uid]);
-        $asdos = $stmt->fetch();
+// Ambil data JSON dari ESP32
+$input = json_decode(file_get_contents("php://input"), true);
 
-        if ($asdos) {
-            // Berhasil mengenali kartu
-            echo json_encode([
-                "status" => "success",
-                "message" => "Kartu dikenali: " . $asdos['nama'],
-                "uid" => $uid
-            ]);
-        } else {
-            echo json_encode(["status" => "error", "message" => "UID Kartu Tidak Terdaftar"]);
-        }
-    } catch (Exception $e) {
-        echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+// Ambil UID
+$uid = strtoupper(trim($input['uid'] ?? ''));
+
+// Validasi UID kosong
+if (empty($uid)) {
+    echo json_encode([
+        "status" => false,
+        "message" => "UID kosong"
+    ]);
+    exit;
+}
+
+try {
+
+    // Cari mahasiswa berdasarkan UID RFID
+    $stmt = $pdo->prepare("
+        SELECT
+            id_rfid,
+            nama,
+            nim
+        FROM asdos
+        WHERE id_rfid = ?
+        LIMIT 1
+    ");
+
+    $stmt->execute([$uid]);
+
+    $mahasiswa = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Jika UID ditemukan
+    if ($mahasiswa) {
+
+        echo json_encode([
+            "status" => true,
+            "message" => "RFID dikenali",
+            "uid" => $mahasiswa['id_rfid'],
+            "nama" => $mahasiswa['nama'],
+            "nim" => $mahasiswa['nim']
+        ]);
+
+    } else {
+
+        echo json_encode([
+            "status" => false,
+            "message" => "UID tidak terdaftar",
+            "uid" => $uid
+        ]);
+
     }
-} else {
-    echo json_encode(["status" => "error", "message" => "Metode tidak valid / data UID kosong"]);
+
+} catch (PDOException $e) {
+
+    echo json_encode([
+        "status" => false,
+        "message" => "Database Error",
+        "error" => $e->getMessage()
+    ]);
+
 }
 ?>
