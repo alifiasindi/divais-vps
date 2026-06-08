@@ -61,110 +61,169 @@ if (isset($_GET['edit'])) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Kelola Kit IoT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kelola Data Kit IoT</title>
+
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Shared Theme CSS -->
+    <link rel="stylesheet" href="dashboard_styles.css">
+
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f4f9; }
-        .header { background-color: #343a40; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .header h2 { margin: 0; font-size: 20px; }
-        .nav-links a { color: white; text-decoration: none; margin-left: 15px; font-size: 14px; padding: 8px 12px; border-radius: 4px; background-color: #495057; }
-        .nav-links a:hover { background-color: #6c757d; }
-        .nav-links a.logout { background-color: #dc3545; }
-        
-        .container { padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex: 1; min-width: 300px; }
-        
-        /* Form Styles */
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; }
-        .btn-primary { background-color: #007bff; }
-        .btn-warning { background-color: #ffc107; color: black; }
-        .btn-danger { background-color: #dc3545; text-decoration: none; font-size: 12px; padding: 5px 10px; }
-        
-        /* Table Styles */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
-        th { background-color: #007bff; color: white; }
-        .aksi-links a { text-decoration: none; margin-right: 5px; }
-        .alert { padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; }
-        .alert.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .alert.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .table td{vertical-align:middle;}
+        code{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+        .status-badge-tersedia{background: rgba(25,135,84,.14); color:#0f5132; border:1px solid rgba(25,135,84,.35); font-weight:900;}
+        .status-badge-dipinjam{background: rgba(107,114,128,.12); color:#374151; border:1px solid rgba(107,114,128,.20); font-weight:900;}
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>Kelola Data Box IoT</h2>
-        <div class="nav-links">
-            <a href="dashboard.php">Kembali ke Dashboard</a>
-            <a href="logout.php" class="logout">Logout</a>
-        </div>
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo">🧰</div>
+                <div>
+                    <h1>Admin Lab IoT</h1>
+                    <small>RFID • Peminjaman Alat</small>
+                </div>
+            </div>
+
+            <nav class="side-nav" aria-label="Sidebar Navigation">
+                <a class="side-link" href="dashboard.php">
+                    <span>📊</span><span>Dashboard Utama / Transaksi</span>
+                </a>
+                <a class="side-link" href="crud_asdos.php">
+                    <span>🎓</span><span>Data Mahasiswa</span>
+                </a>
+                <a class="side-link active" href="crud.php">
+                    <span>🧰</span><span>Data Alat Lab</span>
+                </a>
+            </nav>
+
+            <div class="side-footer">
+                <a href="logout.php" class="btn w-100" style="background: rgba(220,53,69,.95); color:#fff; border-radius:12px; font-weight:900;">
+                    Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="content">
+            <div class="topbar">
+                <h2 class="page-title">Kelola Data Alat Lab / Box IoT</h2>
+            </div>
+
+            <div class="row g-3 align-items-start">
+                <!-- Form -->
+                <div class="col-12 col-lg-4">
+                    <div class="card-soft p-3">
+                        <h4 style="font-weight:900;">
+                            <?= $edit_mode ? "Edit Data Box" : "Tambah Box Baru" ?>
+                        </h4>
+
+                        <?php
+                        // $pesan dari backend masih bentuk <div class='alert success|error'>...</div>
+                        // Render ulang sebagai alert Bootstrap 5 sesuai requirement UI.
+                        if (!empty($pesan)) {
+                            $pesanStr = (string)$pesan;
+                            $text = strip_tags($pesanStr);
+                            if (str_contains($pesanStr, "alert success")) {
+                                echo "<div class=\"alert alert-success\" role=\"alert\">" . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . "</div>";
+                            } elseif (str_contains($pesanStr, "alert error")) {
+                                echo "<div class=\"alert alert-danger\" role=\"alert\">" . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . "</div>";
+                            } else {
+                                echo $pesan;
+                            }
+                        }
+                        ?>
+
+                        <form method="POST" action="">
+                            <?php if($edit_mode): ?>
+                                <input type="hidden" name="is_edit" value="1">
+                                <input type="hidden" name="old_id" value="<?= htmlspecialchars($data_edit['id_qr']) ?>">
+                            <?php endif; ?>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">ID QR (Kode Stiker)</label>
+                                <input type="text" class="form-control" name="id_qr" value="<?= htmlspecialchars($data_edit['id_qr']) ?>" required placeholder="Contoh: KIT-01">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nama Kit / Box</label>
+                                <input type="text" class="form-control" name="nama_kit" value="<?= htmlspecialchars($data_edit['nama_kit']) ?>" required placeholder="Contoh: Box Sensor Suhu">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Status Saat Ini</label>
+                                <select name="status" class="form-select">
+                                    <option value="tersedia" <?= $data_edit['status'] == 'tersedia' ? 'selected' : '' ?>>Tersedia</option>
+                                    <option value="dipinjam" <?= $data_edit['status'] == 'dipinjam' ? 'selected' : '' ?>>Sedang Dipinjam</option>
+                                </select>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="simpan" class="btn <?= $edit_mode ? 'btn-warning' : 'btn-success' ?> flex-grow-1 fw-bold" style="border-radius:12px;">
+                                    <?= $edit_mode ? "Update Data" : "Simpan Data" ?>
+                                </button>
+
+                                <?php if($edit_mode): ?>
+                                    <a href="crud.php" class="btn btn-secondary" style="border-radius:12px; font-weight:900;">
+                                        Batal
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="col-12 col-lg-8">
+                    <div class="card-soft p-3">
+                        <h4 style="font-weight:900;" class="mb-3">Daftar Box IoT Terdaftar</h4>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>ID QR</th>
+                                        <th>Nama Kit Box</th>
+                                        <th>Status</th>
+                                        <th style="width:170px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $stmt = $pdo->query("SELECT * FROM iot_kits ORDER BY id_qr ASC");
+                                    while($row = $stmt->fetch()) {
+                                        $id = htmlspecialchars($row['id_qr']);
+                                        $nama = htmlspecialchars($row['nama_kit']);
+                                        $status = $row['status'];
+                                        $badgeClass = ($status === 'tersedia') ? 'status-badge-tersedia' : 'status-badge-dipinjam';
+
+                                        echo "<tr>
+                                                <td><code>{$id}</code></td>
+                                                <td>{$nama}</td>
+                                                <td><span class=\"badge {$badgeClass}\">" . htmlspecialchars($status) . "</span></td>
+                                                <td>
+                                                    <div class='d-flex gap-2'>
+                                                        <a href='?edit={$id}' class='btn btn-sm btn-outline-success fw-bold' style='border-radius:10px;'>Edit</a>
+                                                        <a href='?hapus={$id}' class='btn btn-sm btn-outline-danger fw-bold' style='border-radius:10px;' onclick='return confirm(\"Yakin ingin menghapus box ini?\")'>Hapus</a>
+                                                    </div>
+                                                </td>
+                                            </tr>";
+                                    }
+                                    ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <div class="container">
-        <div class="card" style="flex: 0.4;">
-            <h3><?= $edit_mode ? "Edit Data Box" : "Tambah Box Baru" ?></h3>
-            <?= $pesan ?>
-            <form method="POST" action="">
-                <?php if($edit_mode): ?>
-                    <input type="hidden" name="is_edit" value="1">
-                    <input type="hidden" name="old_id" value="<?= htmlspecialchars($data_edit['id_qr']) ?>">
-                <?php endif; ?>
-
-                <div class="form-group">
-                    <label>ID QR (Kode Stiker)</label>
-                    <input type="text" name="id_qr" value="<?= htmlspecialchars($data_edit['id_qr']) ?>" required placeholder="Contoh: KIT-01">
-                </div>
-                <div class="form-group">
-                    <label>Nama Kit / Box</label>
-                    <input type="text" name="nama_kit" value="<?= htmlspecialchars($data_edit['nama_kit']) ?>" required placeholder="Contoh: Box Sensor Suhu">
-                </div>
-                <div class="form-group">
-                    <label>Status Saat Ini</label>
-                    <select name="status">
-                        <option value="tersedia" <?= $data_edit['status'] == 'tersedia' ? 'selected' : '' ?>>Tersedia</option>
-                        <option value="dipinjam" <?= $data_edit['status'] == 'dipinjam' ? 'selected' : '' ?>>Sedang Dipinjam</option>
-                    </select>
-                </div>
-                
-                <button type="submit" name="simpan" class="btn <?= $edit_mode ? 'btn-warning' : 'btn-primary' ?>">
-                    <?= $edit_mode ? "Update Data" : "Simpan Data" ?>
-                </button>
-                <?php if($edit_mode): ?>
-                    <a href="crud.php" class="btn" style="background: #6c757d; text-decoration: none;">Batal</a>
-                <?php endif; ?>
-            </form>
-        </div>
-
-        <div class="card" style="flex: 1;">
-            <h3>Daftar Box IoT Terdaftar</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID QR</th>
-                        <th>Nama Kit Box</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $stmt = $pdo->query("SELECT * FROM iot_kits ORDER BY id_qr ASC");
-                    while($row = $stmt->fetch()) {
-                        echo "<tr>
-                                <td><strong>{$row['id_qr']}</strong></td>
-                                <td>{$row['nama_kit']}</td>
-                                <td>{$row['status']}</td>
-                                <td class='aksi-links'>
-                                    <a href='?edit={$row['id_qr']}' style='color: #28a745;'>✏️ Edit</a> | 
-                                    <a href='?hapus={$row['id_qr']}' style='color: #dc3545;' onclick='return confirm(\"Yakin ingin menghapus box ini?\")'>🗑️ Hapus</a>
-                                </td>
-                              </tr>";
-                    }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

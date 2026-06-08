@@ -22,13 +22,13 @@ try {
         ],
 
         [
-            'id_rfid' => 'A1B2C3D4', 
+            'id_rfid' => 'A1B2C3D9', 
             'nama'    => 'Lidia Fitriana', 
             'nim'     => '5231011009'
         ],
 
          [
-            'id_rfid' => 'A1B2C3D4', 
+            'id_rfid' => 'A1B2C3D12', 
             'nama'    => 'Ritaningsih', 
             'nim'     => '5231011031'
         ]

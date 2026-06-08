@@ -28,34 +28,83 @@ if (isset($_POST['login'])) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sistem Validasi Peminjaman</title>
+
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-box { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 300px; }
-        .login-box h2 { text-align: center; margin-bottom: 20px; color: #333; }
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; margin-bottom: 5px; color: #666; font-size: 14px; }
-        .input-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button:hover { background-color: #0056b3; }
-        .error { color: #dc3545; text-align: center; margin-bottom: 15px; font-size: 14px; background-color: #f8d7da; padding: 10px; border-radius: 4px; }
+        body{
+            background-color:#f6f7fb;
+            min-height:100vh;
+        }
+        .login-wrap{
+            min-height:100vh;
+        }
+        .login-card{
+            border-radius:16px;
+            border:1px solid rgba(16,24,40,.08);
+            box-shadow:0 10px 25px rgba(16,24,40,.05);
+            background:rgba(255,255,255,.95);
+            backdrop-filter: blur(6px);
+        }
+        .login-title{
+            font-weight:900;
+            letter-spacing:-.02em;
+        }
+        .btn-login{
+            background-color:#198754;
+            border-color:#198754;
+            border-radius:12px;
+            font-weight:900;
+        }
+        .btn-login:hover{
+            background-color:#157347;
+            border-color:#157347;
+        }
     </style>
 </head>
 <body>
-    <div class="login-box">
-        <h2>Sistem Lab IoT</h2>
-        <?php if($error != "") echo "<div class='error'>$error</div>"; ?>
-        <form method="POST" action="">
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" name="username" required autocomplete="off">
+    <div class="container login-wrap">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-12 col-md-5 col-lg-4">
+                <div class="login-card p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-3" style="background:rgba(25,135,84,.08); border:1px solid rgba(25,135,84,.15);">
+                            <span style="font-size:18px;">🧪</span>
+                            <h2 class="h4 m-0 login-title">Sistem Lab IoT</h2>
+                        </div>
+                        <div class="text-muted mt-2" style="font-size:13px;">🔐 Validasi Peminjaman Berbasis RFID</div>
+                    </div>
+
+                    <?php if($error != ""): ?>
+                        <div class="alert alert-danger text-center" role="alert">
+                            <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST" action="">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Username</label>
+                            <input type="text" class="form-control" name="username" required autocomplete="off" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Password</label>
+                            <input type="password" class="form-control" name="password" required />
+                        </div>
+
+                        <button type="submit" name="login" class="btn btn-login w-100 py-2">
+                            Login
+                        </button>
+                    </form>
+                </div>
             </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" name="password" required>
-            </div>
-            <button type="submit" name="login">Login</button>
-        </form>
+        </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
