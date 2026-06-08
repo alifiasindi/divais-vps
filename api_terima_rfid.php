@@ -44,8 +44,8 @@ try {
         $stmtTemp->execute([$mahasiswa['id_rfid']]);
 
         echo json_encode([
-            "status" => true,
-            "message" => "RFID dikenali",
+            "status" => "success",
+            "message" => $mahasiswa['nama'],
             "uid" => $mahasiswa['id_rfid'],
             "nama" => $mahasiswa['nama'],
             "nim" => $mahasiswa['nim']
@@ -54,7 +54,7 @@ try {
     } else {
 
         echo json_encode([
-            "status" => false,
+            "status" => "error",
             "message" => "UID tidak terdaftar",
             "uid" => $uid
         ]);
