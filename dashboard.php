@@ -31,9 +31,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard Admin - Peminjaman IoT Kit</title>
 
-    <!-- Bootstrap 5 CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <link rel="stylesheet" href="dashboard_styles.css">
 
     <style>
@@ -49,7 +47,6 @@ try {
 <body>
 
 <div class="app-shell">
-    <!-- Sidebar -->
     <aside class="sidebar">
         <div class="brand">
             <div class="logo">🧪</div>
@@ -78,7 +75,6 @@ try {
         </div>
     </aside>
 
-    <!-- Content -->
     <main class="content">
         <div class="topbar">
             <h2 class="page-title">Dashboard Admin</h2>
@@ -87,7 +83,6 @@ try {
             </div>
         </div>
 
-        <!-- Ringkasan Data Alat -->
         <div class="row g-3 mb-3">
             <div class="col-12 col-md-4">
                 <div class="card-soft kpi-card">
@@ -124,7 +119,6 @@ try {
             </div>
         </div>
 
-        <!-- Tabel Transaksi -->
         <section class="card-soft p-3">
             <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
                 <h4 class="m-0 fw-black" style="font-weight:900;">Transaksi Peminjaman</h4>
@@ -148,6 +142,7 @@ try {
                     <tbody>
                         <?php
                         try {
+                            // Query utama untuk menampillkan data JOIN dari 3 tabel
                             $query = "SELECT p.id, k.nama_kit, a.nama, a.nim, p.waktu_pinjam, p.waktu_kembali, p.status_transaksi
                                       FROM peminjaman p
                                       JOIN asdos a ON p.id_rfid = a.id_rfid
@@ -158,24 +153,18 @@ try {
                             if ($stmt->rowCount() > 0) {
                                 while ($row = $stmt->fetch()) {
                                     $waktuKembali = !empty($row['waktu_kembali']) ? $row['waktu_kembali'] : "-";
-
                                     $badgeClass = ($row['status_transaksi'] === 'aktif') ? 'badge-dipinjam' : 'badge-selesai';
                                     $badgeLabel = strtoupper($row['status_transaksi']);
-
                                     $waktuKembaliForJs = $row['waktu_kembali'] ? $row['waktu_kembali'] : '';
 
-                                    echo "<tr ";
-                                    echo "data-status='" . htmlspecialchars($row['status_transaksi']) . "' ";
-                                    echo "data-waktu-kembali='" . htmlspecialchars($waktuKembaliForJs) . "' ";
-                                    echo ">";
-                                    echo "
-                                            <td>{$row['nama']}</td>
-                                            <td>{$row['nim']}</td>
-                                            <td>{$row['nama_kit']}</td>
-                                            <td>{$row['waktu_pinjam']}</td>
-                                            <td>{$waktuKembali}</td>
-                                            <td><span class='badge-status badge {$badgeClass}'>" . $badgeLabel . "</span></td>
-                                        </tr>";
+                                    echo "<tr data-status='" . htmlspecialchars($row['status_transaksi']) . "' data-waktu-kembali='" . htmlspecialchars($waktuKembaliForJs) . "'>";
+                                    echo "<td>" . htmlspecialchars($row['nama']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['nim']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['nama_kit']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['waktu_pinjam']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($waktuKembali) . "</td>";
+                                    echo "<td><span class='badge-status badge {$badgeClass}'>" . $badgeLabel . "</span></td>";
+                                    echo "</tr>";
                                 }
                             } else {
                                 echo "<tr><td colspan='6' class='text-center py-4'>Belum ada data transaksi peminjaman.</td></tr>";
@@ -189,7 +178,6 @@ try {
             </div>
         </section>
 
-        <!-- Modal Pop-Up Tap RFID Mahasiswa -->
         <div class="modal fade" id="modalTapRFID" tabindex="-1" aria-labelledby="modalTapRFIDLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content" style="border-radius:16px;">
@@ -221,9 +209,7 @@ try {
                                     <div class="row g-3 align-items-end">
                                         <div class="col-12 col-md-6">
                                             <label class="form-label fw-bold">Pilih Alat Lab (Tersedia)</label>
-                                            <select class="form-select" id="selectAlat">
-                                                <!-- opsional (fallback UI) -->
-                                            </select>
+                                            <select class="form-select" id="selectAlat"></select>
                                         </div>
                                         <div class="col-12 col-md-6">
                                             <label class="form-label fw-bold">Scan Barcode Alat</label>
@@ -231,12 +217,10 @@ try {
                                         </div>
 
                                         <div class="col-12">
-                                            <!-- UI Modal: area kamera scan -->
                                             <div id="reader" class="mt-2" style="min-height:120px; border:1px dashed rgba(255,79,216,.35); border-radius:12px; padding:10px; overflow:hidden;"></div>
                                             <div class="text-muted mt-2" style="font-size:13px;">Arahkan kamera ke QR ID Alat.</div>
                                         </div>
 
-                                        <!-- UI Modal: Keranjang alat -->
                                         <div class="col-12">
                                             <div class="d-flex align-items-center justify-content-between">
                                                 <div>
@@ -280,7 +264,6 @@ try {
     </main>
 </div>
 
-<!-- Bootstrap 5 JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -300,303 +283,261 @@ try {
   const keranjangAlatBody = document.getElementById('keranjangAlatBody');
   const keranjangCountEl = document.getElementById('keranjangCount');
   const btnPinjamEl = document.getElementById('btnPinjam');
-
   const selectAlat = document.getElementById('selectAlat');
 
   // State
-  let currentIdRfid = null; // UID mahasiswa dari polling cek_rfid.php
-  let keranjang = []; // array id_qr alat yang akan dipinjam
+  let currentIdRfid = null;
+  let keranjang = []; 
   let modalOpened = false;
   let lastRfidId = null;
 
-modalEl.addEventListener('hidden.bs.modal', () => {
-  modalOpened = false;
-  lastRfidId = null;
-  currentIdRfid = null;
-  resetKeranjang();
-});
+  modalEl.addEventListener('hidden.bs.modal', () => {
+      modalOpened = false;
+      lastRfidId = null;
+      currentIdRfid = null;
+      resetKeranjang();
+  });
 
   function renderKeranjang(){
-    if(!keranjangAlatBody) return;
-    keranjangAlatBody.innerHTML = '';
+      if(!keranjangAlatBody) return;
+      keranjangAlatBody.innerHTML = '';
 
-    const total = keranjang.length;
-    if(keranjangCountEl) keranjangCountEl.textContent = String(total);
+      const total = keranjang.length;
+      if(keranjangCountEl) keranjangCountEl.textContent = String(total);
 
-    if(total === 0){
-      keranjangAlatBody.innerHTML = `
-        <tr id="keranjangKosongRow">
-          <td colspan="2" class="text-center text-muted">Keranjang kosong</td>
-        </tr>
-      `;
-      return;
-    }
+      if(total === 0){
+          keranjangAlatBody.innerHTML = `
+            <tr id="keranjangKosongRow">
+              <td colspan="2" class="text-center text-muted">Keranjang kosong</td>
+            </tr>
+          `;
+          return;
+      }
 
-    keranjang.forEach((id_qr, idx) => {
-      const tr = document.createElement('tr');
+      keranjang.forEach((id_qr, idx) => {
+          const tr = document.createElement('tr');
+          const tdId = document.createElement('td');
+          tdId.textContent = id_qr;
 
-      const tdId = document.createElement('td');
-      tdId.textContent = id_qr;
+          const tdAksi = document.createElement('td');
+          tdAksi.innerHTML = `
+            <button type="button" class="btn btn-sm btn-outline-danger fw-bold" style="border-radius:10px;" data-index="${idx}">
+              Hapus
+            </button>
+          `;
 
-      const tdAksi = document.createElement('td');
-      tdAksi.innerHTML = `
-        <button type="button" class="btn btn-sm btn-outline-danger fw-bold" style="border-radius:10px;" data-index="${idx}">
-          Hapus
-        </button>
-      `;
-
-      tr.appendChild(tdId);
-      tr.appendChild(tdAksi);
-      keranjangAlatBody.appendChild(tr);
-    });
-
-    keranjangAlatBody.querySelectorAll('button[data-index]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const index = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-        if(!Number.isNaN(index)){
-          keranjang.splice(index, 1);
-          renderKeranjang();
-        }
+          tr.appendChild(tdId);
+          tr.appendChild(tdAksi);
+          keranjangAlatBody.appendChild(tr);
       });
-    });
+
+      keranjangAlatBody.querySelectorAll('button[data-index]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+              const index = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+              if(!Number.isNaN(index)){
+                  keranjang.splice(index, 1);
+                  renderKeranjang();
+              }
+          });
+      });
   }
 
   function resetKeranjang(){
-    keranjang = [];
-    renderKeranjang();
+      keranjang = [];
+      renderKeranjang();
   }
 
   function fillModalMahasiswa(m){
-    mfNamaEl.textContent = m.nama;
-    mfNpmEl.textContent = `NPM: ${m.nim}`;
-    mfIdEl.textContent = `ID: ${m.id_rfid}`;
-    currentIdRfid = m.id_rfid;
+      mfNamaEl.textContent = m.nama;
+      mfNpmEl.textContent = `NPM: ${m.nim}`;
+      mfIdEl.textContent = `ID: ${m.id_rfid}`;
+      currentIdRfid = m.id_rfid;
 
-    inputBarcodeEl.value = '';
-    resetKeranjang();
+      inputBarcodeEl.value = '';
+      resetKeranjang();
   }
 
   async function pollCekRfid(){
-  try{
-    const resp = await fetch('cek_rfid.php', {
-  cache: 'no-store',
-  credentials: 'include'
-});
-    if(!resp.ok) return;
+      try{
+          const resp = await fetch('cek_rfid.php', { cache: 'no-store', credentials: 'include' });
+          if(!resp.ok) return;
 
-    const data = await resp.json();
+          const data = await resp.json();
 
-    if(data && data.status === true){
+          if(data && data.status === true){
+              if (modalOpened) return;
+              if (data.id_rfid === lastRfidId) return;
 
-      if (modalOpened) return;
-      if (data.id_rfid === lastRfidId) return;
+              lastRfidId = data.id_rfid;
+              fillModalMahasiswa({
+                  id_rfid: data.id_rfid,
+                  nama: data.nama,
+                  nim: data.nim
+              });
 
-    lastRfidId = data.id_rfid;
-
-      fillModalMahasiswa({
-        id_rfid: data.id_rfid,
-        nama: data.nama,
-        nim: data.nim
-      });
-
-      // tampilkan sebagai pop-up di halaman dashboard
-      modalOpened = true;
-      modal.show();
-      // supaya tampilan terasa "muncul" tanpa berdiri sendiri
-      // modal backgrop/scroll handled oleh bootstrap
-    }
-
-  }catch(err){
-    console.warn(err);
+              modalOpened = true;
+              modal.show();
+          }
+      }catch(err){
+          console.warn(err);
+      }
   }
-}
 
   setInterval(pollCekRfid, 1000);
   pollCekRfid();
 
-  // 2) Scan Barcode/QR dengan html5-qrcode
+  // Load HTML5 QR Code Scanner
   function loadHtml5Qrcode(){
-    return new Promise((resolve, reject) => {
-      if(window.Html5Qrcode){
-        resolve();
-        return;
-      }
-
-      const s = document.createElement('script');
-      s.src = 'https://unpkg.com/html5-qrcode/build/html5-qrcode.js';
-      s.async = true;
-      s.onload = () => resolve();
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
+      return new Promise((resolve, reject) => {
+          if(window.Html5Qrcode){
+              resolve();
+              return;
+          }
+          const s = document.createElement('script');
+          s.src = 'https://unpkg.com/html5-qrcode/build/html5-qrcode.js';
+          s.async = true;
+          s.onload = () => resolve();
+          s.onerror = reject;
+          document.head.appendChild(s);
+      });
   }
 
   function addToKeranjang(id_qr){
-    id_qr = String(id_qr || '').trim();
-    if(!id_qr) return;
-    if(keranjang.includes(id_qr)) return; // cegah duplikat
+      id_qr = String(id_qr || '').trim();
+      if(!id_qr) return;
+      if(keranjang.includes(id_qr)) return;
 
-    keranjang.push(id_qr);
-    renderKeranjang();
+      keranjang.push(id_qr);
+      renderKeranjang();
 
-    // opsional: tampilkan hasil di input
-    if(inputBarcodeEl) inputBarcodeEl.value = id_qr;
+      if(inputBarcodeEl) inputBarcodeEl.value = id_qr;
   }
-
-  // NOTE: Bagian bawah file ini sebelumnya terpotong.
-  // Kode lengkap scanner kamera + keranjang + submit disediakan ulang mulai dari initQrScanner.
 
   (async function initQrScanner(){
-    const readerEl = document.getElementById('reader');
-    if(!readerEl) return;
+      const readerEl = document.getElementById('reader');
+      if(!readerEl) return;
 
-    try{
-      await loadHtml5Qrcode();
+      try{
+          await loadHtml5Qrcode();
+          const qrScanner = new Html5Qrcode(readerEl.id);
 
-      // html5-qrcode butuh elemen container ID, lalu start kamera
-      const qrScanner = new Html5Qrcode(readerEl.id);
+          let lastText = '';
+          let lastTime = 0;
 
-      // debounce scan agar tidak dobel cepat
-      let lastText = '';
-      let lastTime = 0;
+          await qrScanner.start(
+              { facingMode: 'environment' },
+              { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
+              (decodedText) => {
+                  const text = String(decodedText || '').trim();
+                  if(!text) return;
 
-      await qrScanner.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1
-        },
-        (decodedText) => {
-          const text = String(decodedText || '').trim();
-          if(!text) return;
+                  const now = Date.now();
+                  if(text === lastText && (now - lastTime) < 1200) return;
 
-          const now = Date.now();
-          if(text === lastText && (now - lastTime) < 1200) return;
-
-          lastText = text;
-          lastTime = now;
-
-          // Tambahkan hasil scan ke keranjang alat
-          addToKeranjang(text);
-        },
-        (errorMessage) => {
-          // ignore error scanning
-        }
-      );
-    } catch (e) {
-      console.warn('initQrScanner error:', e);
-    }
+                  lastText = text;
+                  lastTime = now;
+                  addToKeranjang(text);
+              },
+              (errorMessage) => { /* ignore */ }
+          );
+      } catch (e) {
+          console.warn('initQrScanner error:', e);
+      }
   })();
 
-  // ============================================================
-  // Submit Data Keranjang: btnPinjam -> proses_pinjam.php
-  // ============================================================
+  // Submit Pinjam
   btnPinjamEl?.addEventListener('click', async () => {
-    if (!currentIdRfid) {
-      alert('Belum ada mahasiswa yang tap RFID. Silakan tap RFID mahasiswa terlebih dahulu.');
-      return;
-    }
-
-    if (!keranjang.length) {
-      alert('Keranjang masih kosong. Scan QR/Barcode alat terlebih dahulu atau pilih alat dari dropdown.');
-      return;
-    }
-
-    // Terapkan filter supaya hanya alat yang benar-benar dipilih.
-    // Jika Anda ingin dropdown menjadi sumber alat, maka pastikan addToKeranjang dipanggil dari dropdown juga.
-
-    try {
-      const payload = {
-        id_rfid: currentIdRfid,
-        items: keranjang
-      };
-
-      const resp = await fetch('proses_pinjam.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!resp.ok) throw new Error('Request gagal: ' + resp.status);
-
-      const result = await resp.json().catch(() => null);
-
-      if (result && result.status === true) {
-  alert(result.message || 'Pinjam berhasil!');
-  modalOpened = false;
-  lastRfidId = null;
-  currentIdRfid = null;
-} else {
-        alert((result && result.message) ? result.message : 'Pinjam diproses (cek status di sistem).');
+      if (!currentIdRfid) {
+          alert('Belum ada mahasiswa yang tap RFID. Silakan tap RFID mahasiswa terlebih dahulu.');
+          return;
       }
 
-      // reset UI
-      resetKeranjang();
-      modal.hide();
-      window.location.reload();
-    } catch (err) {
-      console.warn('btnPinjam error:', err);
-      alert('Gagal memproses pinjam. Periksa format response backend atau koneksi.');
-    }
+      if (!keranjang.length) {
+          alert('Keranjang masih kosong. Scan QR/Barcode alat terlebih dahulu atau pilih alat dari dropdown.');
+          return;
+      }
+
+      try {
+          const payload = {
+              id_rfid: currentIdRfid,
+              items: keranjang
+          };
+
+          const resp = await fetch('proses_pinjam.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+
+          if (!resp.ok) throw new Error('Request gagal: ' + resp.status);
+
+          const result = await resp.json().catch(() => null);
+
+          if (result && result.status === true) {
+              alert(result.message || 'Pinjam berhasil!');
+              modalOpened = false;
+              lastRfidId = null;
+              currentIdRfid = null;
+          } else {
+              alert((result && result.message) ? result.message : 'Pinjam diproses (cek status di sistem).');
+          }
+
+          resetKeranjang();
+          modal.hide();
+          window.location.reload();
+      } catch (err) {
+          console.warn('btnPinjam error:', err);
+          alert('Gagal memproses pinjam. Periksa format response backend atau koneksi.');
+      }
   });
 
-  // ============================================================
-  // Tambahan: Dropdown pilih alat (tambahan agar bisa pilih alat tanpa scan)
-  // ============================================================
-  // Karena backend Anda tidak diubah, dropdown isi memakai placeholder (contoh) jika Anda belum menambahkan endpoint.
-  // Namun minimal kita dukung mode: jika ada option, user bisa pilih dan klik tombol Add ke keranjang.
+  // Setup Dropdown
   if (selectAlat) {
-    // Isi default placeholder supaya UI tidak kosong
-    const placeholderOpt = document.createElement('option');
-    placeholderOpt.value = '';
-    placeholderOpt.textContent = '— Pilih alat tersedia —';
-    placeholderOpt.disabled = true;
-    placeholderOpt.selected = true;
+      const placeholderOpt = document.createElement('option');
+      placeholderOpt.value = '';
+      placeholderOpt.textContent = '— Pilih alat tersedia —';
+      placeholderOpt.disabled = true;
+      placeholderOpt.selected = true;
 
-    // Jika sudah terisi dari server/JS sebelumnya, jangan overwrite
-    if (selectAlat.options.length === 0) {
-      selectAlat.appendChild(placeholderOpt);
-    }
-
-    // Jika ada tombol tambah alat dari dropdown (kita buat kecil jika belum ada)
-    if (!document.getElementById('btnTambahAlat')) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'btnTambahAlat';
-      btn.className = 'btn btn-outline-pink fw-bold';
-      btn.style.borderRadius = '12px';
-      btn.style.fontWeight = '900';
-      btn.textContent = 'Tambah ke Keranjang';
-
-      // Sisipkan setelah selectAlat area. Letakkan setelah select ini dengan cara cari parent
-      const selectParent = selectAlat.closest('.col-12, .mb-3, .form-group, .row');
-      if (selectParent && selectParent.parentElement) {
-        selectParent.parentElement.appendChild(btn);
+      if (selectAlat.options.length === 0) {
+          selectAlat.appendChild(placeholderOpt);
       }
-    }
 
-    const btnTambah = document.getElementById('btnTambahAlat');
-    btnTambah?.addEventListener('click', () => {
-      const id_qr = selectAlat.value;
-      if (!id_qr) {
-        alert('Pilih alat dari dropdown terlebih dahulu.');
-        return;
+      if (!document.getElementById('btnTambahAlat')) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.id = 'btnTambahAlat';
+          btn.className = 'btn btn-outline-pink fw-bold mt-2';
+          btn.style.borderRadius = '12px';
+          btn.style.fontWeight = '900';
+          btn.textContent = 'Tambah ke Keranjang';
+
+          const selectParent = selectAlat.closest('.col-12, .mb-3, .form-group, .row');
+          if (selectParent && selectParent.parentElement) {
+              selectParent.appendChild(btn);
+          }
       }
-      addToKeranjang(id_qr);
-    });
+
+      const btnTambah = document.getElementById('btnTambahAlat');
+      btnTambah?.addEventListener('click', () => {
+          const id_qr = selectAlat.value;
+          if (!id_qr) {
+              alert('Pilih alat dari dropdown terlebih dahulu.');
+              return;
+          }
+          addToKeranjang(id_qr);
+      });
   }
 
-  // ============================================================
-  // Tambahan: Enter pada inputBarcode untuk langsung add
-  // ============================================================
+  // Barcode Input
   inputBarcodeEl?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const text = String(inputBarcodeEl.value || '').trim();
-      addToKeranjang(text);
-    }
+      if (e.key === 'Enter') {
+          e.preventDefault();
+          const text = String(inputBarcodeEl.value || '').trim();
+          addToKeranjang(text);
+      }
   });
 
-  // Jika ada baris kode sisa yang terpotong di bawahnya, pastikan tidak ada lagi.
-
+</script>
+</body>
+</html>
