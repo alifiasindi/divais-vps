@@ -6,17 +6,17 @@ try {
     // ID RFID di bawah ini adalah contoh. Nanti kamu bisa menggantinya dengan UID kartu fisik asli.
     $data_asdos = [
         [
-            'id_rfid' => '1234567A', 
+            'id_rfid' => 'E32C0FD3', 
             'nama'    => 'Eki Sulastri', 
             'nim'     => '5231011022'
         ],
         [
-            'id_rfid' => '89ABCDEF', 
+            'id_rfid' => '43A610D3', 
             'nama'    => 'Alifia Sindi Ananda', 
             'nim'     => '5231011035'
         ],
         [
-            'id_rfid' => 'A1B2C3D4', 
+            'id_rfid' => 'A37F15D3', 
             'nama'    => 'Ummi Lathifa Nabila', 
             'nim'     => '5231011057'
         ],
