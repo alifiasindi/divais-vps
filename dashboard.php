@@ -12,15 +12,23 @@ if (!isset($_SESSION['status_login']) || $_SESSION['status_login'] !== true) {
 $totalAlat = 0;
 $alatTersedia = 0;
 $alatDipinjam = 0;
+$alatTersediaList = []; // Array baru untuk menyimpan daftar alat yang tersedia
+
 try {
+    // Mengambil jumlah status alat
     $stmt = $pdo->query("SELECT status, COUNT(*) AS cnt FROM iot_kits GROUP BY status");
     while ($r = $stmt->fetch()) {
         if ($r['status'] === 'tersedia') $alatTersedia = (int)$r['cnt'];
         if ($r['status'] === 'dipinjam') $alatDipinjam = (int)$r['cnt'];
     }
     $totalAlat = $alatTersedia + $alatDipinjam;
+
+    // Mengambil detail alat yang tersedia untuk dropdown
+    $stmtKits = $pdo->query("SELECT id_qr, nama_kit FROM iot_kits WHERE status = 'tersedia'");
+    $alatTersediaList = $stmtKits->fetchAll(PDO::FETCH_ASSOC);
+
 } catch (Throwable $e) {
-    // biarkan default 0
+    // biarkan default
 }
 ?>
 
@@ -142,7 +150,6 @@ try {
                     <tbody>
                         <?php
                         try {
-                            // Query utama untuk menampillkan data JOIN dari 3 tabel
                             $query = "SELECT p.id, k.nama_kit, a.nama, a.nim, p.waktu_pinjam, p.waktu_kembali, p.status_transaksi
                                       FROM peminjaman p
                                       JOIN asdos a ON p.id_rfid = a.id_rfid
@@ -209,7 +216,16 @@ try {
                                     <div class="row g-3 align-items-end">
                                         <div class="col-12 col-md-6">
                                             <label class="form-label fw-bold">Pilih Alat Lab (Tersedia)</label>
-                                            <select class="form-select" id="selectAlat"></select>
+                                            
+                                            <select class="form-select" id="selectAlat">
+                                                <option value="" disabled selected>— Pilih alat tersedia —</option>
+                                                <?php foreach ($alatTersediaList as $kit): ?>
+                                                    <option value="<?= htmlspecialchars($kit['id_qr']) ?>">
+                                                        <?= htmlspecialchars($kit['id_qr'] . ' - ' . $kit['nama_kit']) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+
                                         </div>
                                         <div class="col-12 col-md-6">
                                             <label class="form-label fw-bold">Scan Barcode Alat</label>
@@ -271,7 +287,6 @@ try {
   // REALTIME RFID + KERANJANG + SCAN QR (html5-qrcode)
   // ============================================================
 
-  // Elemen DOM
   const modalEl = document.getElementById('modalTapRFID');
   const modal = new bootstrap.Modal(modalEl);
 
@@ -285,7 +300,6 @@ try {
   const btnPinjamEl = document.getElementById('btnPinjam');
   const selectAlat = document.getElementById('selectAlat');
 
-  // State
   let currentIdRfid = null;
   let keranjang = []; 
   let modalOpened = false;
@@ -345,6 +359,7 @@ try {
   function resetKeranjang(){
       keranjang = [];
       renderKeranjang();
+      if(selectAlat) selectAlat.value = ""; // Reset dropdown saat keranjang direset
   }
 
   function fillModalMahasiswa(m){
@@ -386,7 +401,6 @@ try {
   setInterval(pollCekRfid, 1000);
   pollCekRfid();
 
-  // Load HTML5 QR Code Scanner
   function loadHtml5Qrcode(){
       return new Promise((resolve, reject) => {
           if(window.Html5Qrcode){
@@ -405,7 +419,10 @@ try {
   function addToKeranjang(id_qr){
       id_qr = String(id_qr || '').trim();
       if(!id_qr) return;
-      if(keranjang.includes(id_qr)) return;
+      if(keranjang.includes(id_qr)) {
+          alert('Alat sudah ada di keranjang!');
+          return;
+      }
 
       keranjang.push(id_qr);
       renderKeranjang();
@@ -478,31 +495,21 @@ try {
               modalOpened = false;
               lastRfidId = null;
               currentIdRfid = null;
+              resetKeranjang();
+              modal.hide();
+              window.location.reload(); // Refresh halaman supaya dropdown terupdate
           } else {
               alert((result && result.message) ? result.message : 'Pinjam diproses (cek status di sistem).');
           }
 
-          resetKeranjang();
-          modal.hide();
-          window.location.reload();
       } catch (err) {
           console.warn('btnPinjam error:', err);
           alert('Gagal memproses pinjam. Periksa format response backend atau koneksi.');
       }
   });
 
-  // Setup Dropdown
+  // Setup Dropdown (Membuat tombol "Tambah ke Keranjang" untuk alat yang dipilih)
   if (selectAlat) {
-      const placeholderOpt = document.createElement('option');
-      placeholderOpt.value = '';
-      placeholderOpt.textContent = '— Pilih alat tersedia —';
-      placeholderOpt.disabled = true;
-      placeholderOpt.selected = true;
-
-      if (selectAlat.options.length === 0) {
-          selectAlat.appendChild(placeholderOpt);
-      }
-
       if (!document.getElementById('btnTambahAlat')) {
           const btn = document.createElement('button');
           btn.type = 'button';
@@ -512,8 +519,9 @@ try {
           btn.style.fontWeight = '900';
           btn.textContent = 'Tambah ke Keranjang';
 
-          const selectParent = selectAlat.closest('.col-12, .mb-3, .form-group, .row');
-          if (selectParent && selectParent.parentElement) {
+          // Memasukkan tombol ke bawah dropdown
+          const selectParent = selectAlat.closest('.col-12');
+          if (selectParent) {
               selectParent.appendChild(btn);
           }
       }
