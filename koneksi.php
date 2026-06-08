@@ -17,4 +17,17 @@ try {
 } catch (\PDOException $e) {
      throw new \PDOException($e->getMessage(), (int)$e->getCode());
 }
+
+// --- TAMBAHAN KODE UNTUK BIKIN TABEL OTOMATIS ---
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS temp_rfid (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        id_rfid VARCHAR(50) NOT NULL,
+        waktu TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $e) {
+    // Biarkan kosong, abaikan jika terjadi error pembuatan tabel
+}
+// ------------------------------------------------
+
 ?>

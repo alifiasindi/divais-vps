@@ -419,8 +419,157 @@ try {
     if(inputBarcodeEl) inputBarcodeEl.value = id_qr;
   }
 
+  // NOTE: Bagian bawah file ini sebelumnya terpotong.
+  // Kode lengkap scanner kamera + keranjang + submit disediakan ulang mulai dari initQrScanner.
+
   (async function initQrScanner(){
     const readerEl = document.getElementById('reader');
     if(!readerEl) return;
 
     try{
+      await loadHtml5Qrcode();
+
+      // html5-qrcode butuh elemen container ID, lalu start kamera
+      const qrScanner = new Html5Qrcode(readerEl.id);
+
+      // debounce scan agar tidak dobel cepat
+      let lastText = '';
+      let lastTime = 0;
+
+      await qrScanner.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1
+        },
+        (decodedText) => {
+          const text = String(decodedText || '').trim();
+          if(!text) return;
+
+          const now = Date.now();
+          if(text === lastText && (now - lastTime) < 1200) return;
+
+          lastText = text;
+          lastTime = now;
+
+          // Tambahkan hasil scan ke keranjang alat
+          addToKeranjang(text);
+        },
+        (errorMessage) => {
+          // ignore error scanning
+        }
+      );
+    } catch (e) {
+      console.warn('initQrScanner error:', e);
+    }
+  })();
+
+  // ============================================================
+  // Submit Data Keranjang: btnPinjam -> proses_pinjam.php
+  // ============================================================
+  btnPinjamEl?.addEventListener('click', async () => {
+    if (!currentIdRfid) {
+      alert('Belum ada mahasiswa yang tap RFID. Silakan tap RFID mahasiswa terlebih dahulu.');
+      return;
+    }
+
+    if (!keranjang.length) {
+      alert('Keranjang masih kosong. Scan QR/Barcode alat terlebih dahulu atau pilih alat dari dropdown.');
+      return;
+    }
+
+    // Terapkan filter supaya hanya alat yang benar-benar dipilih.
+    // Jika Anda ingin dropdown menjadi sumber alat, maka pastikan addToKeranjang dipanggil dari dropdown juga.
+
+    try {
+      const payload = {
+        id_rfid: currentIdRfid,
+        keranjang: keranjang
+      };
+
+      const resp = await fetch('proses_pinjam.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) throw new Error('Request gagal: ' + resp.status);
+
+      const result = await resp.json().catch(() => null);
+
+      if (result && result.status === true) {
+        alert(result.message || 'Pinjam berhasil!');
+      } else {
+        alert((result && result.message) ? result.message : 'Pinjam diproses (cek status di sistem).');
+      }
+
+      // reset UI
+      resetKeranjang();
+      modal.hide();
+      window.location.reload();
+    } catch (err) {
+      console.warn('btnPinjam error:', err);
+      alert('Gagal memproses pinjam. Periksa format response backend atau koneksi.');
+    }
+  });
+
+  // ============================================================
+  // Tambahan: Dropdown pilih alat (tambahan agar bisa pilih alat tanpa scan)
+  // ============================================================
+  // Karena backend Anda tidak diubah, dropdown isi memakai placeholder (contoh) jika Anda belum menambahkan endpoint.
+  // Namun minimal kita dukung mode: jika ada option, user bisa pilih dan klik tombol Add ke keranjang.
+  if (selectAlat) {
+    // Isi default placeholder supaya UI tidak kosong
+    const placeholderOpt = document.createElement('option');
+    placeholderOpt.value = '';
+    placeholderOpt.textContent = '— Pilih alat tersedia —';
+    placeholderOpt.disabled = true;
+    placeholderOpt.selected = true;
+
+    // Jika sudah terisi dari server/JS sebelumnya, jangan overwrite
+    if (selectAlat.options.length === 0) {
+      selectAlat.appendChild(placeholderOpt);
+    }
+
+    // Jika ada tombol tambah alat dari dropdown (kita buat kecil jika belum ada)
+    if (!document.getElementById('btnTambahAlat')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'btnTambahAlat';
+      btn.className = 'btn btn-outline-pink fw-bold';
+      btn.style.borderRadius = '12px';
+      btn.style.fontWeight = '900';
+      btn.textContent = 'Tambah ke Keranjang';
+
+      // Sisipkan setelah selectAlat area. Letakkan setelah select ini dengan cara cari parent
+      const selectParent = selectAlat.closest('.col-12, .mb-3, .form-group, .row');
+      if (selectParent && selectParent.parentElement) {
+        selectParent.parentElement.appendChild(btn);
+      }
+    }
+
+    const btnTambah = document.getElementById('btnTambahAlat');
+    btnTambah?.addEventListener('click', () => {
+      const id_qr = selectAlat.value;
+      if (!id_qr) {
+        alert('Pilih alat dari dropdown terlebih dahulu.');
+        return;
+      }
+      addToKeranjang(id_qr);
+    });
+  }
+
+  // ============================================================
+  // Tambahan: Enter pada inputBarcode untuk langsung add
+  // ============================================================
+  inputBarcodeEl?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const text = String(inputBarcodeEl.value || '').trim();
+      addToKeranjang(text);
+    }
+  });
+
+  // Jika ada baris kode sisa yang terpotong di bawahnya, pastikan tidak ada lagi.
+
