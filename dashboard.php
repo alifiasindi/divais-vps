@@ -378,7 +378,10 @@ modalEl.addEventListener('hidden.bs.modal', () => {
 
   async function pollCekRfid(){
   try{
-    const resp = await fetch('cek_rfid.php', { cache: 'no-store' });
+    const resp = await fetch('cek_rfid.php', {
+  cache: 'no-store',
+  credentials: 'include'
+});
     if(!resp.ok) return;
 
     const data = await resp.json();
