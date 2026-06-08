@@ -148,7 +148,6 @@ try {
                     <tbody>
                         <?php
                         try {
-                            // Tetap gunakan logic data transaksi utama yang sudah ada (JOIN transaksi/asdos/iot_kits)
                             $query = "SELECT p.id, k.nama_kit, a.nama, a.nim, p.waktu_pinjam, p.waktu_kembali, p.status_transaksi
                                       FROM peminjaman p
                                       JOIN asdos a ON p.id_rfid = a.id_rfid
@@ -160,18 +159,16 @@ try {
                                 while ($row = $stmt->fetch()) {
                                     $waktuKembali = !empty($row['waktu_kembali']) ? $row['waktu_kembali'] : "-";
 
-                                    // Badge awal mengikuti status_transaksi
                                     $badgeClass = ($row['status_transaksi'] === 'aktif') ? 'badge-dipinjam' : 'badge-selesai';
                                     $badgeLabel = strtoupper($row['status_transaksi']);
 
-                                    // Jika sudah kembali (selesai) tapi melewati 18:00 -> telat (akan diperjelas via JS juga)
-                                    // Waktu format DB kemungkinan 'Y-m-d H:i:s'
                                     $waktuKembaliForJs = $row['waktu_kembali'] ? $row['waktu_kembali'] : '';
 
                                     echo "<tr ";
                                     echo "data-status='" . htmlspecialchars($row['status_transaksi']) . "' ";
                                     echo "data-waktu-kembali='" . htmlspecialchars($waktuKembaliForJs) . "' ";
-                                    echo ">
+                                    echo ">";
+                                    echo "
                                             <td>{$row['nama']}</td>
                                             <td>{$row['nim']}</td>
                                             <td>{$row['nama_kit']}</td>
@@ -225,7 +222,7 @@ try {
                                         <div class="col-12 col-md-6">
                                             <label class="form-label fw-bold">Pilih Alat Lab (Tersedia)</label>
                                             <select class="form-select" id="selectAlat">
-                                                <!-- diisi placeholder JS -->
+                                                <!-- opsional (fallback UI) -->
                                             </select>
                                         </div>
                                         <div class="col-12 col-md-6">
@@ -233,20 +230,49 @@ try {
                                             <input type="text" class="form-control" id="inputBarcode" placeholder="Tempel/ketik hasil scan..." autocomplete="off">
                                         </div>
 
+                                        <div class="col-12">
+                                            <!-- UI Modal: area kamera scan -->
+                                            <div id="reader" class="mt-2" style="min-height:120px; border:1px dashed rgba(255,79,216,.35); border-radius:12px; padding:10px; overflow:hidden;"></div>
+                                            <div class="text-muted mt-2" style="font-size:13px;">Arahkan kamera ke QR ID Alat.</div>
+                                        </div>
+
+                                        <!-- UI Modal: Keranjang alat -->
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div>
+                                                    <div class="form-label fw-bold mb-1">Keranjang Alat</div>
+                                                    <div class="text-muted" style="font-size:13px;">Total: <span id="keranjangCount">0</span> item</div>
+                                                </div>
+                                            </div>
+
+                                            <div class="table-responsive mt-2">
+                                                <table class="table table-sm align-middle mb-0" id="keranjangAlat">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>QR ID</th>
+                                                            <th style="width:90px;">Aksi</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="keranjangAlatBody">
+                                                        <tr id="keranjangKosongRow">
+                                                            <td colspan="2" class="text-center text-muted">Keranjang kosong</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
                                         <div class="col-12 d-flex justify-content-end">
-                                            <button type="button" class="btn btn-pinjam" id="btnPinjam">
-                                                Pinjam
-                                            </button>
+                                            <button type="button" class="btn btn-pinjam" id="btnPinjam">Pinjam</button>
                                         </div>
                                     </div>
                                     <div class="text-muted mt-2" style="font-size:13px;">
-                                        * Ini hanya simulasi tampilan. Tombol Pinjam tidak mengubah backend.
+                                        * Scan QR alat untuk menambah ke keranjang. RFID mahasiswa via ESP32 memunculkan modal secara realtime.
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -258,95 +284,143 @@ try {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  // --------- Placeholder Data untuk tampilan (simulasi) ---------
-  const demoMahasiswa = [
-    { nama: 'Eki Sulastri', npm: '5231011022', id: '1234567A' },
-    { nama: 'Alifia Sindi Ananda', npm: '5231011035', id: '89ABCDEF' },
-    { nama: 'Ummi Lathifa Nabila', npm: '5231011057', id: 'A1B2C3D4' }
-  ];
+  // ============================================================
+  // REALTIME RFID + KERANJANG + SCAN QR (html5-qrcode)
+  // ============================================================
 
-  const demoAlatTersedia = [
-    { id_qr: 'KIT-AIR-01', nama: 'IoT Kit Box - Monitoring Kualitas Udara' },
-    { id_qr: 'KIT-SCALE-01', nama: 'IoT Kit Box - Timbangan Digital & Berat' },
-    { id_qr: 'KIT-SMART-01', nama: 'IoT Kit Box - Smart Home & Interface Systems' }
-  ];
-
-  // Populate select alat saat load
-  const selectAlat = document.getElementById('selectAlat');
-  if (selectAlat) {
-    demoAlatTersedia.forEach(a => {
-      const opt = document.createElement('option');
-      opt.value = a.id_qr;
-      opt.textContent = `${a.nama}`;
-      selectAlat.appendChild(opt);
-    });
-  }
-
-  // Modal logic
+  // Elemen DOM
   const modalEl = document.getElementById('modalTapRFID');
   const modal = new bootstrap.Modal(modalEl);
 
-  function fillModalMahasiswa(m){
-    document.getElementById('mfNama').textContent = m.nama;
-    document.getElementById('mfNpm').textContent = `NPM: ${m.npm}`;
-    document.getElementById('mfId').textContent = `ID: ${m.id}`;
-    document.getElementById('inputBarcode').value = '';
-  }
+  const mfNamaEl = document.getElementById('mfNama');
+  const mfNpmEl = document.getElementById('mfNpm');
+  const mfIdEl = document.getElementById('mfId');
+  const inputBarcodeEl = document.getElementById('inputBarcode');
 
-  // Simulasi tap RFID (tombol)
-  const btnSim = document.getElementById('btnSimulasiTap');
-  if (btnSim){
-    btnSim.addEventListener('click', () => {
-      const pick = demoMahasiswa[Math.floor(Math.random()*demoMahasiswa.length)];
-      fillModalMahasiswa(pick);
-      modal.show();
+  const keranjangAlatBody = document.getElementById('keranjangAlatBody');
+  const keranjangCountEl = document.getElementById('keranjangCount');
+  const btnPinjamEl = document.getElementById('btnPinjam');
+
+  const selectAlat = document.getElementById('selectAlat');
+
+  // State
+  let currentIdRfid = null; // UID mahasiswa dari polling cek_rfid.php
+  let keranjang = []; // array id_qr alat yang akan dipinjam
+
+  function renderKeranjang(){
+    if(!keranjangAlatBody) return;
+    keranjangAlatBody.innerHTML = '';
+
+    const total = keranjang.length;
+    if(keranjangCountEl) keranjangCountEl.textContent = String(total);
+
+    if(total === 0){
+      keranjangAlatBody.innerHTML = `
+        <tr id="keranjangKosongRow">
+          <td colspan="2" class="text-center text-muted">Keranjang kosong</td>
+        </tr>
+      `;
+      return;
+    }
+
+    keranjang.forEach((id_qr, idx) => {
+      const tr = document.createElement('tr');
+
+      const tdId = document.createElement('td');
+      tdId.textContent = id_qr;
+
+      const tdAksi = document.createElement('td');
+      tdAksi.innerHTML = `
+        <button type="button" class="btn btn-sm btn-outline-danger fw-bold" style="border-radius:10px;" data-index="${idx}">
+          Hapus
+        </button>
+      `;
+
+      tr.appendChild(tdId);
+      tr.appendChild(tdAksi);
+      keranjangAlatBody.appendChild(tr);
     });
-  }
 
-  // Placeholder tombol Pinjam
-  const btnPinjam = document.getElementById('btnPinjam');
-  if(btnPinjam){
-    btnPinjam.addEventListener('click', () => {
-      // Tidak memanggil backend; hanya tampilkan toast sederhana
-      const barcode = document.getElementById('inputBarcode').value.trim();
-      const alatId = selectAlat.value;
-      const pickText = `Mahasiswa: ${document.getElementById('mfNama').textContent} | Alat: ${alatId}${barcode ? ' | Barcode: ' + barcode : ''}`;
-      alert('Simulasi Pinjam:\n' + pickText);
-    });
-  }
-
-  // --------- Badge Telat Dikembalikan (> 18:00) ---------
-  // Requirement: jika melewati jam 18:00 -> badge merah/pink mencolok.
-  (function applyTelatBadge(){
-    const rows = document.querySelectorAll('#tableTransaksi tbody tr');
-    rows.forEach(tr => {
-      const status = tr.getAttribute('data-status') || '';
-      const waktuKembali = tr.getAttribute('data-waktu-kembali') || '';
-      const badge = tr.querySelector('.badge-status');
-      if(!badge) return;
-
-      // Jika masih aktif, biarkan badge dipinjam
-      if(status.toLowerCase() === 'aktif') return;
-
-      if(waktuKembali){
-        // Ambil jam dari string 'YYYY-MM-DD HH:mm:ss'
-        const parts = waktuKembali.split(' ');
-        const time = parts[1] || '';
-        const hh = parseInt(time.split(':')[0] || '0', 10);
-        if(hh >= 18){
-          badge.classList.remove('badge-selesai');
-          badge.classList.add('badge-telat');
-          badge.textContent = 'TELAT DIKEMBALIKAN';
-        } else {
-          badge.classList.remove('badge-telat');
-          badge.classList.add('badge-selesai');
-          badge.textContent = 'SELESAI / DIKEMBALIKAN';
+    keranjangAlatBody.querySelectorAll('button[data-index]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+        if(!Number.isNaN(index)){
+          keranjang.splice(index, 1);
+          renderKeranjang();
         }
-      }
+      });
     });
-  })();
-</script>
+  }
 
-</body>
-</html>
+  function resetKeranjang(){
+    keranjang = [];
+    renderKeranjang();
+  }
 
+  function fillModalMahasiswa(m){
+    mfNamaEl.textContent = m.nama;
+    mfNpmEl.textContent = `NPM: ${m.nim}`;
+    mfIdEl.textContent = `ID: ${m.id_rfid}`;
+    currentIdRfid = m.id_rfid;
+
+    inputBarcodeEl.value = '';
+    resetKeranjang();
+  }
+
+  // 1) Real-time Modal Pop-up: polling cek_rfid.php setiap 1 detik
+  async function pollCekRfid(){
+    try{
+      const resp = await fetch('cek_rfid.php', { method: 'GET', cache: 'no-store' });
+      if(!resp.ok) return;
+      const data = await resp.json();
+
+      if(data && data.status === true){
+        fillModalMahasiswa({
+          id_rfid: data.id_rfid,
+          nama: data.nama,
+          nim: data.nim
+        });
+        modal.show();
+      }
+    }catch(err){
+      console.warn('pollCekRfid error:', err);
+    }
+  }
+
+  setInterval(pollCekRfid, 1000);
+  pollCekRfid();
+
+  // 2) Scan Barcode/QR dengan html5-qrcode
+  function loadHtml5Qrcode(){
+    return new Promise((resolve, reject) => {
+      if(window.Html5Qrcode){
+        resolve();
+        return;
+      }
+
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/html5-qrcode/build/html5-qrcode.js';
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  function addToKeranjang(id_qr){
+    id_qr = String(id_qr || '').trim();
+    if(!id_qr) return;
+    if(keranjang.includes(id_qr)) return; // cegah duplikat
+
+    keranjang.push(id_qr);
+    renderKeranjang();
+
+    // opsional: tampilkan hasil di input
+    if(inputBarcodeEl) inputBarcodeEl.value = id_qr;
+  }
+
+  (async function initQrScanner(){
+    const readerEl = document.getElementById('reader');
+    if(!readerEl) return;
+
+    try{

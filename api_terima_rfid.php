@@ -38,6 +38,14 @@ try {
     // Jika UID ditemukan
     if ($mahasiswa) {
 
+        // --- TAMBAHAN: Simpan tap sementara ke temp_rfid agar dashboard bisa realtime ---
+        // 1) Bersihkan tabel temp_rfid (sesuai requirement: selalu hanya 1 tap terbaru)
+        $pdo->exec("TRUNCATE TABLE temp_rfid");
+
+        // 2) Insert id_rfid terbaru
+        $stmtTemp = $pdo->prepare("INSERT INTO temp_rfid (id_rfid, waktu) VALUES (?, CURRENT_TIMESTAMP)");
+        $stmtTemp->execute([$mahasiswa['id_rfid']]);
+
         echo json_encode([
             "status" => true,
             "message" => "RFID dikenali",
@@ -57,6 +65,7 @@ try {
     }
 
 } catch (PDOException $e) {
+
 
     echo json_encode([
         "status" => false,
