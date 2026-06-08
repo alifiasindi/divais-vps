@@ -306,6 +306,15 @@ try {
   // State
   let currentIdRfid = null; // UID mahasiswa dari polling cek_rfid.php
   let keranjang = []; // array id_qr alat yang akan dipinjam
+  let modalOpened = false;
+  let lastRfidId = null;
+
+modalEl.addEventListener('hidden.bs.modal', () => {
+  modalOpened = false;
+  lastRfidId = null;
+  currentIdRfid = null;
+  resetKeranjang();
+});
 
   function renderKeranjang(){
     if(!keranjangAlatBody) return;
@@ -367,25 +376,34 @@ try {
     resetKeranjang();
   }
 
-  // 1) Real-time Modal Pop-up: polling cek_rfid.php setiap 1 detik
   async function pollCekRfid(){
-    try{
-      const resp = await fetch('cek_rfid.php', { method: 'GET', cache: 'no-store' });
-      if(!resp.ok) return;
-      const data = await resp.json();
+  try{
+    const resp = await fetch('cek_rfid.php', { cache: 'no-store' });
+    if(!resp.ok) return;
 
-      if(data && data.status === true){
-        fillModalMahasiswa({
-          id_rfid: data.id_rfid,
-          nama: data.nama,
-          nim: data.nim
-        });
-        modal.show();
-      }
-    }catch(err){
-      console.warn('pollCekRfid error:', err);
+    const data = await resp.json();
+
+    if(data && data.status === true){
+
+      if (modalOpened) return;
+      if (data.id_rfid === lastRfidId) return;
+
+    lastRfidId = data.id_rfid;
+
+      fillModalMahasiswa({
+        id_rfid: data.id_rfid,
+        nama: data.nama,
+        nim: data.nim
+      });
+
+      modalOpened = true;
+      modal.show();
     }
+
+  }catch(err){
+    console.warn(err);
   }
+}
 
   setInterval(pollCekRfid, 1000);
   pollCekRfid();
@@ -499,8 +517,11 @@ try {
       const result = await resp.json().catch(() => null);
 
       if (result && result.status === true) {
-        alert(result.message || 'Pinjam berhasil!');
-      } else {
+  alert(result.message || 'Pinjam berhasil!');
+  modalOpened = false;
+  lastRfidId = null;
+  currentIdRfid = null;
+} else {
         alert((result && result.message) ? result.message : 'Pinjam diproses (cek status di sistem).');
       }
 

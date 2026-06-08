@@ -23,16 +23,16 @@ header('Content-Type: application/json');
 
 try {
     // Ambil 1 tap terbaru
-    $sql = "
-        SELECT tr.id,
-               tr.id_rfid,
-               a.nama,
-               a.nim
-        FROM temp_rfid tr
-        JOIN asdos a ON a.id_rfid = tr.id_rfid
-        ORDER BY tr.waktu DESC
-        LIMIT 1
-    ";
+   $sql = "
+    SELECT tr.id,
+           tr.id_rfid,
+           a.nama,
+           a.nim
+    FROM temp_rfid tr
+    JOIN asdos a ON a.id_rfid = tr.id_rfid
+    ORDER BY tr.id DESC
+    LIMIT 1
+";
 
     $stmt = $pdo->query($sql);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -42,9 +42,12 @@ try {
         exit;
     }
 
-    // Hapus baris temp agar tidak muncul berulang
-    $del = $pdo->prepare("DELETE FROM temp_rfid WHERE id = ?");
-    $del->execute([$row['id']]);
+  $pdo->beginTransaction();
+
+$del = $pdo->prepare("DELETE FROM temp_rfid WHERE id = ?");
+$del->execute([$row['id']]);
+
+$pdo->commit();
 
     echo json_encode([
         "status" => true,
