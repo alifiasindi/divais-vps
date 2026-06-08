@@ -396,8 +396,11 @@ modalEl.addEventListener('hidden.bs.modal', () => {
         nim: data.nim
       });
 
+      // tampilkan sebagai pop-up di halaman dashboard
       modalOpened = true;
       modal.show();
+      // supaya tampilan terasa "muncul" tanpa berdiri sendiri
+      // modal backgrop/scroll handled oleh bootstrap
     }
 
   }catch(err){
@@ -503,7 +506,7 @@ modalEl.addEventListener('hidden.bs.modal', () => {
     try {
       const payload = {
         id_rfid: currentIdRfid,
-        keranjang: keranjang
+        items: keranjang
       };
 
       const resp = await fetch('proses_pinjam.php', {
